@@ -60,11 +60,11 @@ jobs:
            echo "$md_table" | sed 's/|/,/g' > table.csv 
 
            # Get tag_name from PR title 
-           tag_name=${{github.event.pull_request.title}}
+           tag_name='${{github.event.pull_request.title}}'
            tag_name=${tag_name%_*}
 
            # Get name from PR title 
-           name=${{github.event.pull_request.title}}
+           name='${{github.event.pull_request.title}}'
 
            # Create pre-release with markdown table as description using tag_name and name from PR title 
            curl \
