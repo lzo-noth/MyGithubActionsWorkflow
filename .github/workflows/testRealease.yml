@@ -31,7 +31,7 @@ jobs:
             echo "$author"
             type=$(echo $message | grep -oP '^\w+')
             echo "$type"
-            issue=$(echo $message | grep -oP '\[\K\w+\-\d+')
+            issue=$(echo $message | grep -oP '\[\K\w+\-\d+' || echo "")
             echo "$issue"
             title=$(echo $message | grep -oP '\]\K.+$')
             echo "$title"
