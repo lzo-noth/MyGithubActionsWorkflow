@@ -64,7 +64,7 @@ jobs:
            # Get tag_name from PR title 
            tag_name='${{github.event.pull_request.title}}'
            tag_name=${tag_name%_*}
-           echo '$tag_name'
+           echo "$tag_name"
 
            # Get name from PR title 
            name='${{github.event.pull_request.title}}'
