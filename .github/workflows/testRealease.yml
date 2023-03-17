@@ -22,16 +22,22 @@ jobs:
 
           # Initialize markdown table string
           md_table="| Type | Issue | Title | Author |\n| --- | --- | --- | --- |\n"
-          echo "$md_table"
+          echo "$commits"
           # Loop through each commit and extract information for the table
           for commit in $commits; do
             message=$(git log --format=%B -n 1 $commit)
+            echo "$message"
             author=$(git log --format=%an -n 1 $commit)
+            echo "$author"
             type=$(echo $message | grep -oP '^\w+')
+            echo "$type"
             issue=$(echo $message | grep -oP '\[\K\w+\-\d+')
+            echo "$issue"
             title=$(echo $message | grep -oP '\]\K.+$')
+            echo "$title"
             md_table+="| $type | $issue | $title | $author |\n"
           done
+          echo "$md_table"
 
           # Update PR body with markdown table
           curl \
