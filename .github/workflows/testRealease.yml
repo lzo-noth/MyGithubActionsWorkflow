@@ -1,0 +1,85 @@
+on:
+  pull_request:
+    branches:
+      - main
+# types: [closed]
+
+jobs:
+  generate_table:
+#     if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Generate markdown table and update PR body
+        run: |
+
+          # Get all commits in the PR
+          commits=$(git log --pretty=format:"%h" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
+
+          # Initialize markdown table string
+          md_table="| Type | Issue | Title | Author |\n| --- | --- | --- | --- |\n"
+          echo "$commits"
+          # Loop through each commit and extract information for the table
+          for commit in $commits; do
+            message=$(git log --format=%B -n 1 $commit)
+            if ! echo "$message" | grep -Pq '^(chore|docs|feat|fix|refactor|style|test){1}(\([\w\-\. ]+\))?: ?\[.*\]([\s\S]*)'; then
+            continue
+            fi
+            author=$(git log --format=%an -n 1 $commit)
+            echo "$author"
+            type=$(echo $message | grep -oP '^\w+')
+            echo "$type"
+            issue=$(echo $message | grep -oP '\[\K\w+\-\d+' || echo "")
+            echo "$issue"
+            if [ -z "$issue" ]; then 
+              title=$(echo $message | grep -oP '^[^:]*:\K.+$' | sed 's/\[\]//g') 
+            else 
+              title=$(echo $message | grep -oP '\]\K.+$') 
+            fi
+            echo "$title"
+            md_table+="| $type | $issue | $title | @$author |\n"
+          done
+          echo "::set-output name=md_table::$md_table"
+
+          # Update PR body with markdown table
+          curl \
+            -X PATCH \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }} \
+            -d "{\"body\": \"$md_table\"}"
+
+      - name : Create pre-release and upload CSV file as artifact 
+        run : |
+           #!/bin/bash
+           md_table="${{ steps.generate_md_table.outputs.md_table }}"
+           # Convert markdown table to CSV format and save to file 
+           echo "$md_table" | sed 's/|/,/g' > table.csv 
+
+           # Get tag_name from PR title 
+           tag_name='${{github.event.pull_request.title}}'
+
+           echo "Before: $tag_name"
+           tag_name=${tag_name% *}
+           echo "After: $tag_name"
+           echo "$tag_name"
+
+           # Get name from PR title 
+           name='${{github.event.pull_request.title}}'
+
+           # Create pre-release with markdown table as description using tag_name and name from PR title 
+           curl \
+             -X POST \
+             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+             https://api.github.com/repos/${{ github.repository }}/releases \
+             -d "{\"tag_name\": \"$tag_name\", \"name\": \"$name\", \"body\": \"$md_table\", \"prerelease\": true}"
+
+      - name : Upload CSV file as action artifact 
+        uses : actions/upload-artifact@v2.3.1 
+        with :
+           name : csv-file 
+           path : ./table.csv 
