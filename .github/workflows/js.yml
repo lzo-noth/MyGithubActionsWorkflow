@@ -1,0 +1,80 @@
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate_table:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Generate markdown table and update PR body
+        id: generate_md_table
+        uses: actions/github-script@v5
+        with:
+          script: |
+            // Get all commits in the PR
+            const commits = await github.rest.repos.listCommits({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+
+            // Initialize markdown table string
+            let mdTable = "| Type | Issue | Title | Author |\n| --- | --- | --- | --- |\n";
+
+            // Loop through each commit and extract information for the table
+            for (const commit of commits.data) {
+              const message = commit.commit.message;
+              if (!/^(chore|docs|feat|fix|refactor|style|test){1}(\([\w\-\. ]+\))?: ?\[.*\]([\s\S]*)/.test(message)) {
+                continue;
+              }
+
+              const author = commit.author.login;
+              const type = message.match(/^\w+/)[0];
+              const issueMatch = message.match(/\[(\w+\-\d+)\]/);
+              const issue = issueMatch ? issueMatch[1] : "";
+
+              let title;
+              if (!issue) {
+                title = message.match(/^[^:]*:\K.+/)[0].replace("[]", "");
+              } else {
+                title = message.match(/\]\K.+/)[0];
+              }
+
+              mdTable += `| ${type} | ${issue} | ${title} | @${author} |\n`;
+            }
+
+            // Set output variable with markdown table value 
+            core.setOutput("md_table", mdTable);
+
+      - name : Create pre-release and upload CSV file as artifact 
+        run : |
+           #!/bin/bash
+           md_table="${{ steps.generate_md_table.outputs.md_table }}"
+           # Convert markdown table to CSV format and save to file 
+           echo "$md_table" | sed 's/|/,/g' > table.csv 
+           # Get tag_name from PR title 
+           tag_name='${{github.event.pull_request.title}}'
+           echo "Before: $tag_name"
+           tag_name=${tag_name% *}
+           echo "After: $tag_name"
+           echo "$tag_name"
+           # Get name from PR title 
+           name='${{github.event.pull_request.title}}'
+           # Create pre-release with markdown table as description using tag_name and name from PR title 
+           curl \
+             -X POST \
+             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+             https://api.github.com/repos/${{ github.repository }}/releases \
+             -d "{\"tag_name\": \"$tag_name\", \"name\": \"$name\", \"body\": \"$md_table\", \"prerelease\": true}"
+             
+      - name : Upload CSV file as action artifact 
+        uses : actions/upload-artifact@v2.3.1 
+        with :
+           name : csv-file 
+           path : ./table.csv 
