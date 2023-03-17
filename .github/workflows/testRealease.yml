@@ -65,7 +65,7 @@ jobs:
            tag_name='${{github.event.pull_request.title}}'
 
            echo "Before: $tag_name"
-           tag_name=${tag_name%_*}
+           tag_name=${tag_name% *}
            echo "After: $tag_name"
            echo "$tag_name"
 
