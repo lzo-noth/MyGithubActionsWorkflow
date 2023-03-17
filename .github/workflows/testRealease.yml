@@ -16,14 +16,13 @@ jobs:
 
       - name: Generate markdown table and update PR body
         run: |
-          #!/bin/bash
 
           # Get all commits in the PR
           commits=$(git log --pretty=format:"%h" ${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }})
 
           # Initialize markdown table string
           md_table="| Type | Issue | Title | Author |\n| --- | --- | --- | --- |\n"
-
+          echo "$md_table"
           # Loop through each commit and extract information for the table
           for commit in $commits; do
             message=$(git log --format=%B -n 1 $commit)
