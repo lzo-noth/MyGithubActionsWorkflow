@@ -42,7 +42,7 @@ jobs:
             title=$(echo $message | grep -oP '\]\K.+$') 
             fi
             echo "$title"
-            md_table+="| $type | $issue | $title | $author |\n"
+            md_table+="| $type | $issue | $title | @$author |\n"
           done
           echo "$md_table"
 
