@@ -27,7 +27,7 @@ jobs:
           for commit in $commits; do
             message=$(git log --format=%B -n 1 $commit)
             echo "$message"
-            if ! [[ $message =~ ^(chore|docs|feat|fix|refactor|style|test){1}(([\w-. ]+))?: ?[.]([\s\S]) ]]; then
+            if ! echo "$message" | grep -Pq '^(chore|docs|feat|fix|refactor|style|test){1}(([\w-. ]+))?: ?[.]([\s\S])'; then
             continue
             fi
             author=$(git log --format=%an -n 1 $commit)
