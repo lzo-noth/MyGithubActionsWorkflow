@@ -26,7 +26,6 @@ jobs:
           # Loop through each commit and extract information for the table
           for commit in $commits; do
             message=$(git log --format=%B -n 1 $commit)
-            echo "$message"
             if ! echo "$message" | grep -Pq '^(chore|docs|feat|fix|refactor|style|test){1}(([\w-. ]+))?: ?[.]([\s\S])'; then
             continue
             fi
