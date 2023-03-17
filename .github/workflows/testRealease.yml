@@ -35,11 +35,10 @@ jobs:
             echo "$type"
             issue=$(echo $message | grep -oP '\[\K\w+\-\d+' || echo "")
             echo "$issue"
-            if [ -z "$issue" ]; 
-            then 
-            title=$(echo $message | grep -oP '^[^:]*:\K.+$') 
+            if [ -z "$issue" ]; then 
+              title=$(echo $message | grep -oP '^[^:]*:\K.+$' | sed 's/\[\]//g') 
             else 
-            title=$(echo $message | grep -oP '\]\K.+$') 
+              title=$(echo $message | grep -oP '\]\K.+$') 
             fi
             echo "$title"
             md_table+="| $type | $issue | $title | @$author |\n"
